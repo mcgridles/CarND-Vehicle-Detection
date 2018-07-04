@@ -1,0 +1,12 @@
+# Python files
+*.pyc
+__pycache__/
+
+# Mac files
+.DS_Store
+
+# Project files
+examples/
+annotations/
+test_video.mp4
+project_video.mp4
