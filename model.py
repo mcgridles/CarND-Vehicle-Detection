@@ -11,18 +11,18 @@ class Model(object):
         self.sample_size = 500
 
         self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 9  # HOG orientations
+        self.orient = 12  # HOG orientations
         self.pix_per_cell = 8 # HOG pixels per cell
-        self.cell_per_block = 2 # HOG cells per block
-        self.hog_channel = 1 # Can be 0, 1, 2, or "ALL"
-        self.spatial_size = (16, 16) # Spatial binning dimensions
+        self.cell_per_block = 3 # HOG cells per block
+        self.hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
+        self.spatial_size = (32, 32) # Spatial binning dimensions
         self.hist_bins = 16    # Number of histogram bins
         self.spatial_feat = True # Spatial features on or off
-        self.hist_feat = False # Histogram features on or off
+        self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.y_start_stop = [360, 720] # Min and max in y to search in slide_window()
 
         self.classifier = LinearSVC()
+        self.X_scaler = None
 
     def train(self, cars, notcars):
         # Reduce the sample size if necessary
@@ -54,15 +54,13 @@ class Model(object):
             X, y, test_size=0.2, random_state=rand_state)
 
         # Fit a per-column scaler
-        X_scaler = StandardScaler().fit(X_train)
-        # Apply the scaler to X
-        X_train = X_scaler.transform(X_train)
-        X_test = X_scaler.transform(X_test)
+        self.X_scaler = StandardScaler().fit(X_train)
+        X_train = self.X_scaler.transform(X_train)
+        X_test = self.X_scaler.transform(X_test)
 
-        # Use a linear SVC
         self.classifier.fit(X_train, y_train)
         score = round(self.classifier.score(X_test, y_test), 4)
-        print('Test Accuracy of SVC = ', score)
+        print('\033[1mTest Accuracy of classifier:\033[92m', score, '\033[0m')
 
     def predict(self):
         pass
