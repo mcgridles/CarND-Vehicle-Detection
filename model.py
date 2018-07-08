@@ -7,20 +7,21 @@ from sklearn.svm import LinearSVC
 
 class Model(object):
 
-    def __init__(self):
+    def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f):
         self.sample_size = 1000
 
-        self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 12  # HOG orientations
-        self.pix_per_cell = 8 # HOG pixels per cell
-        self.cell_per_block = 3 # HOG cells per block
-        self.hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
-        self.spatial_size = (32, 32) # Spatial binning dimensions
-        self.hist_bins = 16    # Number of histogram bins
-        self.spatial_feat = True # Spatial features on or off
-        self.hist_feat = True # Histogram features on or off
-        self.hog_feat = True # HOG features on or off
+        self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+        self.orient = orient  # HOG orientations
+        self.pix_per_cell = ppc # HOG pixels per cell
+        self.cell_per_block = cpb # HOG cells per block
+        self.hog_channel = hog_chan # Can be 0, 1, 2, or "ALL"
+        self.spatial_size = spatial_s # Spatial binning dimensions
+        self.hist_bins = hist_b    # Number of histogram bins
+        self.spatial_feat = spatial_f # Spatial features on or off
+        self.hist_feat = hist_f # Histogram features on or off
+        self.hog_feat = hog_f # HOG features on or off
 
+        self.X_scaler = None
         self.classifier = LinearSVC()
 
     def train(self, cars, not_cars):
@@ -54,9 +55,9 @@ class Model(object):
             X, y, test_size=0.2, random_state=rand_state)
 
         # Fit a per-column scaler
-        X_scaler = StandardScaler().fit(X_train)
-        X_train = X_scaler.transform(X_train)
-        X_test = X_scaler.transform(X_test)
+        self.X_scaler = StandardScaler().fit(X_train)
+        X_train = self.X_scaler.transform(X_train)
+        X_test = self.X_scaler.transform(X_test)
 
         self.classifier.fit(X_train, y_train)
         score = round(self.classifier.score(X_test, y_test), 4)
