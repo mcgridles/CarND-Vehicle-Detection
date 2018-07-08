@@ -47,16 +47,7 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=3
 
         # apply color conversion if other than 'RGB'
         if color_space != 'RGB':
-            if color_space == 'HSV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-            elif color_space == 'LUV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
-            elif color_space == 'HLS':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-            elif color_space == 'YUV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
-            elif color_space == 'YCrCb':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+            feature_image = convert_color(image, 'RGB2' + color_space)
         else: feature_image = np.copy(image)
 
         if spatial_feat == True:
@@ -120,6 +111,29 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_w
             window_list.append(((startx, starty), (endx, endy)))
 
     return window_list
+
+def convert_color(img, conv='RGB2YCrCb'):
+    if conv == 'RGB2YCrCb':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+    elif conv == 'RGB2LUV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+    elif conv == 'RGB2HSV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    elif conv == 'RGB2HLS':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    elif conv == 'RGB2YUV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+
+    if conv == 'BGR2YCrCb':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+    elif conv == 'BGR2LUV':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2LUV)
+    elif conv == 'BGR2HSV':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    elif conv == 'BGR2HLS':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    elif conv == 'BGR2YUV':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
 def add_heat(heatmap, bbox_list):
     for box in bbox_list:
