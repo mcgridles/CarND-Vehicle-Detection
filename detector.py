@@ -24,13 +24,13 @@ class Detector(object):
         self.xy_window = (128, 128)
         self.xy_overlap = (0.5, 0.5)
 
-        self.color_space = 'HSV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 12  # HOG orientations
+        self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+        self.orient = 9  # HOG orientations
         self.pix_per_cell = 8 # HOG pixels per cell
-        self.cell_per_block = 3 # HOG cells per block
+        self.cell_per_block = 2 # HOG cells per block
         self.hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
         self.spatial_size = (32, 32) # Spatial binning dimensions
-        self.hist_bins = 16    # Number of histogram bins
+        self.hist_bins = 32    # Number of histogram bins
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
@@ -69,8 +69,8 @@ class Detector(object):
         windows = slide_window(img, x_start_stop=[None, None], y_start_stop=[self.y_start, self.y_stop],
                                xy_window=self.xy_window, xy_overlap=self.xy_overlap)
 
-        hot_windows = self.search_windows(img, windows)
-        # hot_windows = self.find_cars(img)
+        # hot_windows = self.search_windows(img, windows)
+        hot_windows = self.find_cars(img)
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
@@ -128,7 +128,7 @@ class Detector(object):
     def find_cars(self, img):
         img_tosearch = img[self.y_start:self.y_stop,:,:]
         img_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
-        if scale != 1:
+        if self.scale != 1:
             imshape = img_tosearch.shape
             img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/self.scale), np.int(imshape[0]/self.scale)))
 
@@ -157,8 +157,8 @@ class Detector(object):
         for xb in range(nxsteps):
             for yb in range(nysteps):
                 features = []
-                ypos = yb*cells_per_step
-                xpos = xb*cells_per_step
+                ypos = yb * cells_per_step
+                xpos = xb * cells_per_step
 
                 # Extract HOG for this patch
                 if self.hog_feat:
@@ -167,8 +167,8 @@ class Detector(object):
                     hog_feat3 = hog3[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
                     features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
 
-                xleft = xpos*pix_per_cell
-                ytop = ypos*pix_per_cell
+                xleft = xpos * self.pix_per_cell
+                ytop = ypos * self.pix_per_cell
 
                 # Extract the image patch
                 subimg = cv2.resize(img_tosearch[ytop:ytop+window, xleft:xleft+window], (64,64))
