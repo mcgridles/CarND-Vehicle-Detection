@@ -9,7 +9,7 @@ from sklearn.externals import joblib
 
 class Model(object):
 
-    def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f):
+    def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f, force=False):
         self.sample_size = 2000
 
         self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
@@ -22,6 +22,8 @@ class Model(object):
         self.spatial_feat = spatial_f # Spatial features on or off
         self.hist_feat = hist_f # Histogram features on or off
         self.hog_feat = hog_f # HOG features on or off
+
+        self.force = force
 
         self.X_scaler = None
         self.clf = LinearSVC(C=0.001)
@@ -78,8 +80,8 @@ class Model(object):
     def storeClassifier(self, X_test, y_test):
         joblib.dump((self.clf, self.X_scaler, X_test, y_test), 'clf.pkl')
 
-    def loadClassifier(self, cars, not_cars, force=False):
-        if not os.path.exists('clf.pkl') or force:
+    def loadClassifier(self, cars, not_cars):
+        if not os.path.exists('clf.pkl') or self.force:
             return self.generateClassifier(cars, not_cars)
         else:
             loaded_data = joblib.load('clf.pkl')

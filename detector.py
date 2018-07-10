@@ -1,5 +1,6 @@
 import os
 import cv2
+import sys
 import glob
 import numpy as np
 import matplotlib.image as mpimg
@@ -16,7 +17,7 @@ from collections import deque
 
 class Detector(object):
 
-    def __init__(self):
+    def __init__(self, force):
         self.x_start = 0
         self.x_stop = 1280
         self.y_start = 350
@@ -50,7 +51,8 @@ class Detector(object):
             self.hist_bins,
             self.spatial_feat,
             self.hist_feat,
-            self.hog_feat
+            self.hog_feat,
+            force
         )
         self.initModel()
 
@@ -208,6 +210,14 @@ class Detector(object):
         return on_windows
 
 if __name__ == '__main__':
+    try:
+        if sys.argv[1] == 'force':
+            force = True
+        else:
+            force = False
+    except IndexError:
+        force = False
+
     img = mpimg.imread('test_images/test1.jpg')
-    detector = Detector()
+    detector = Detector(force)
     detector.detectCars(img)
