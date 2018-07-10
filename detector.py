@@ -12,21 +12,22 @@ from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
 from sklearn.cross_validation import train_test_split
 from scipy.ndimage.measurements import label
+from collections import deque
 
 class Detector(object):
 
     def __init__(self):
         self.x_start = 0
         self.x_stop = 1280
-        self.y_start = 380
+        self.y_start = 350
         self.y_stop = 656
-        self.scale = 1.5
-        self.xy_window = (128, 128)
+        self.scale = 1
+        self.xy_window = (64, 64)
         self.xy_overlap = (0.5, 0.5)
 
-        self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 9  # HOG orientations
-        self.pix_per_cell = 8 # HOG pixels per cell
+        self.color_space = 'YUV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+        self.orient = 11  # HOG orientations
+        self.pix_per_cell = 16 # HOG pixels per cell
         self.cell_per_block = 2 # HOG cells per block
         self.hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
         self.spatial_size = (32, 32) # Spatial binning dimensions
@@ -34,6 +35,10 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
+        self.heat_threshold = 1
+        self.heatmaps_threshold = 5
+
+        self.heatmaps = deque(maxlen=self.heatmaps_threshold)
 
         self.clf = Model(
             self.color_space,
@@ -66,28 +71,32 @@ class Detector(object):
     def detectCars(self, img):
         img = img.astype(np.float32)/255
 
-        windows = slide_window(img, x_start_stop=[None, None], y_start_stop=[self.y_start, self.y_stop],
-                               xy_window=self.xy_window, xy_overlap=self.xy_overlap)
-
-        # hot_windows = self.search_windows(img, windows)
         hot_windows = self.find_cars(img)
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
+        if len(self.heatmaps) == 0:
+            prev_heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
+        else:
+            prev_heatmap = sum(self.heatmaps)
+
         heat = add_heat(heat, hot_windows)
-        heat = apply_threshold(heat, 1)
-        heatmap = np.clip(heat, 0, 255)
-        labels = label(heatmap)
+        agg_heatmap = prev_heatmap + heat
+        thresh_heatmap = apply_threshold(agg_heatmap, self.heat_threshold)
+        thresh_heatmap = np.clip(thresh_heatmap, 0, 255)
+        labels = label(thresh_heatmap)
+        self.heatmaps.append(thresh_heatmap)
 
         boxes = draw_labeled_bboxes(np.copy(img), labels)
-        boxes = draw_boxes(img, hot_windows)
-        plt.imshow(boxes)
+        # boxes = draw_boxes(img, hot_windows)
+        plt.imshow(thresh_heatmap, cmap='hot')
         plt.show()
 
     def single_img_features(self, img):
         img_features = []
         if self.color_space != 'RGB':
             feature_image = convert_color(img, 'RGB2' + self.color_space)
+            img = img.astype(np.float32)/255
         else:
             feature_image = np.copy(img)
 
@@ -127,7 +136,8 @@ class Detector(object):
 
     def find_cars(self, img):
         img_tosearch = img[self.y_start:self.y_stop,:,:]
-        img_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
+        img_tosearch = convert_color(img_tosearch, 'RGB2' + self.color_space)
+        img = img.astype(np.float32)/255
         if self.scale != 1:
             imshape = img_tosearch.shape
             img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/self.scale), np.int(imshape[0]/self.scale)))
