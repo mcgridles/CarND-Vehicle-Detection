@@ -8,7 +8,7 @@ from sklearn.svm import LinearSVC
 class Model(object):
 
     def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f):
-        self.sample_size = 1000
+        self.sample_size = 2000
 
         self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = orient  # HOG orientations
@@ -22,7 +22,7 @@ class Model(object):
         self.hog_feat = hog_f # HOG features on or off
 
         self.X_scaler = None
-        self.classifier = LinearSVC()
+        self.classifier = LinearSVC(C=0.001)
 
     def train(self, cars, not_cars):
         # Reduce the sample size if necessary
