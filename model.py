@@ -1,9 +1,11 @@
+import os
 import numpy as np
 
 from helper_functions import *
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+from sklearn.externals import joblib
 
 class Model(object):
 
@@ -22,7 +24,7 @@ class Model(object):
         self.hog_feat = hog_f # HOG features on or off
 
         self.X_scaler = None
-        self.classifier = LinearSVC(C=0.001)
+        self.clf = LinearSVC(C=0.001)
 
     def train(self, cars, not_cars):
         # Reduce the sample size if necessary
@@ -30,6 +32,15 @@ class Model(object):
             cars = cars[0:self.sample_size]
             not_cars = not_cars[0:self.sample_size]
 
+        # Load classifier and data or generate it
+        X_test, y_test = self.loadClassifier(cars, not_cars)
+        score = round(self.clf.score(X_test, y_test), 4)
+        print('\033[1mTest Accuracy of classifier:\033[92m', score, '\033[0m')
+
+    def predict(self, features):
+        return self.clf.predict(features)
+
+    def generateClassifier(self, cars, not_cars):
         car_features = extractFeatures(cars, color_space=self.color_space,
                                         spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                         orient=self.orient, pix_per_cell=self.pix_per_cell,
@@ -59,9 +70,21 @@ class Model(object):
         X_train = self.X_scaler.transform(X_train)
         X_test = self.X_scaler.transform(X_test)
 
-        self.classifier.fit(X_train, y_train)
-        score = round(self.classifier.score(X_test, y_test), 4)
-        print('\033[1mTest Accuracy of classifier:\033[92m', score, '\033[0m')
+        self.clf.fit(X_train, y_train)
+        self.storeClassifier(X_test, y_test)
 
-    def predict(self, features):
-        return self.classifier.predict(features)
+        return (X_test, y_test)
+
+    def storeClassifier(self, X_test, y_test):
+        joblib.dump((self.clf, self.X_scaler, X_test, y_test), 'clf.pkl')
+
+    def loadClassifier(self, cars, not_cars, force=False):
+        if not os.path.exists('clf.pkl') or force:
+            return self.generateClassifier(cars, not_cars)
+        else:
+            loaded_data = joblib.load('clf.pkl')
+            self.clf = loaded_data[0]
+            self.X_scaler = loaded_data[1]
+            X_test = loaded_data[2]
+            y_test = loaded_data[3]
+            return (X_test, y_test)

@@ -10,3 +10,4 @@ examples/
 annotations/
 test_video.mp4
 project_video.mp4
+clf.pkl
