@@ -4,7 +4,7 @@ import cv2
 
 from skimage.feature import hog
 
-def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
+def getHogFeatures(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     # Call with two outputs if vis==True
     if vis == True:
         features, hog_image = hog(img, orientations=orient,
@@ -23,11 +23,11 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, featu
                        visualise=vis, feature_vector=feature_vec)
         return features
 
-def bin_spatial(img, size=(32, 32)):
+def binSpatial(img, size=(32, 32)):
     features = cv2.resize(img, size).ravel()
     return features
 
-def color_hist(img, nbins=32, bins_range=(0, 256)):
+def colorHist(img, nbins=32, bins_range=(0, 256)):
     # Compute the histogram of the color channels separately
     channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
     channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
@@ -37,7 +37,7 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
     hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
     return hist_features
 
-def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9, pix_per_cell=8,
+def extractFeatures(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9, pix_per_cell=8,
                      cell_per_block=2, hog_channel=0, spatial_feat=True, hist_feat=True, hog_feat=True):
     # Create a list to append feature vectors to
     features = []
@@ -47,32 +47,32 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=3
 
         # apply color conversion if other than 'RGB'
         if color_space != 'RGB':
-            feature_image = convert_color(image, 'RGB2' + color_space)
+            feature_image = convertColor(image, 'RGB2' + color_space)
         else: feature_image = np.copy(image)
 
         if spatial_feat == True:
-            spatial_features = bin_spatial(feature_image, size=spatial_size)
+            spatial_features = binSpatial(feature_image, size=spatial_size)
             file_features.append(spatial_features)
         if hist_feat == True:
-            hist_features = color_hist(feature_image, nbins=hist_bins)
+            hist_features = colorHist(feature_image, nbins=hist_bins)
             file_features.append(hist_features)
         if hog_feat == True:
             if hog_channel == 'ALL':
                 hog_features = []
                 for channel in range(feature_image.shape[2]):
-                    hog_features.append(get_hog_features(feature_image[:,:,channel],
+                    hog_features.append(getHogFeatures(feature_image[:,:,channel],
                                         orient, pix_per_cell, cell_per_block,
                                         vis=False, feature_vec=True))
                 hog_features = np.ravel(hog_features)
             else:
-                hog_features = get_hog_features(feature_image[:,:,hog_channel], orient,
+                hog_features = getHogFeatures(feature_image[:,:,hog_channel], orient,
                             pix_per_cell, cell_per_block, vis=False, feature_vec=True)
 
             file_features.append(hog_features)
         features.append(np.concatenate(file_features))
     return features
 
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
+def slideWindow(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
         x_start_stop[0] = 0
@@ -112,7 +112,7 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_w
 
     return window_list
 
-def convert_color(img, conv='RGB2YCrCb'):
+def convertColor(img, conv='RGB2YCrCb'):
     if conv == 'RGB2YCrCb':
         return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
     elif conv == 'RGB2LUV':
@@ -135,25 +135,25 @@ def convert_color(img, conv='RGB2YCrCb'):
     elif conv == 'BGR2YUV':
         return cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
-def add_heat(heatmap, bbox_list):
+def addHeat(heatmap, bbox_list):
     for box in bbox_list:
         # Add += 1 for all pixels inside each bbox
         heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
     return heatmap
 
-def apply_threshold(heatmap, threshold):
+def applyThreshold(heatmap, threshold):
     heatmap[heatmap <= threshold] = 0
     return heatmap
 
-def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
+def drawBoxes(img, bboxes, color=(0, 0, 255), thick=6):
     imcopy = np.copy(img)
     for bbox in bboxes:
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
 
     return imcopy
 
-def draw_labeled_bboxes(img, labels):
+def drawLabeledBoxes(img, labels):
     imcopy = np.copy(img)
     for car_number in range(1, labels[1]+1):
         nonzero = (labels[0] == car_number).nonzero()

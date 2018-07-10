@@ -30,13 +30,13 @@ class Model(object):
             cars = cars[0:self.sample_size]
             not_cars = not_cars[0:self.sample_size]
 
-        car_features = extract_features(cars, color_space=self.color_space,
+        car_features = extractFeatures(cars, color_space=self.color_space,
                                         spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                         orient=self.orient, pix_per_cell=self.pix_per_cell,
                                         cell_per_block=self.cell_per_block,
                                         hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
                                         hist_feat=self.hist_feat, hog_feat=self.hog_feat)
-        not_car_features = extract_features(not_cars, color_space=self.color_space,
+        not_car_features = extractFeatures(not_cars, color_space=self.color_space,
                                            spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                            orient=self.orient, pix_per_cell=self.pix_per_cell,
                                            cell_per_block=self.cell_per_block,

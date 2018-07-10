@@ -71,7 +71,7 @@ class Detector(object):
     def detectCars(self, img):
         img = img.astype(np.float32)/255
 
-        hot_windows = self.find_cars(img)
+        hot_windows = self.findCars(img)
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
@@ -80,53 +80,53 @@ class Detector(object):
         else:
             prev_heatmap = sum(self.heatmaps)
 
-        heat = add_heat(heat, hot_windows)
+        heat = addHeat(heat, hot_windows)
         agg_heatmap = prev_heatmap + heat
-        thresh_heatmap = apply_threshold(agg_heatmap, self.heat_threshold)
+        thresh_heatmap = applyThreshold(agg_heatmap, self.heat_threshold)
         thresh_heatmap = np.clip(thresh_heatmap, 0, 255)
         labels = label(thresh_heatmap)
         self.heatmaps.append(thresh_heatmap)
 
-        boxes = draw_labeled_bboxes(np.copy(img), labels)
-        # boxes = draw_boxes(img, hot_windows)
+        boxes = drawLabeledBoxes(np.copy(img), labels)
+        # boxes = drawBoxes(img, hot_windows)
         plt.imshow(thresh_heatmap, cmap='hot')
         plt.show()
 
-    def single_img_features(self, img):
+    def singleImgFeatures(self, img):
         img_features = []
         if self.color_space != 'RGB':
-            feature_image = convert_color(img, 'RGB2' + self.color_space)
+            feature_image = convertColor(img, 'RGB2' + self.color_space)
             img = img.astype(np.float32)/255
         else:
             feature_image = np.copy(img)
 
         if self.spatial_feat == True:
-            spatial_features = bin_spatial(feature_image, size=self.spatial_size)
+            spatial_features = binSpatial(feature_image, size=self.spatial_size)
             img_features.append(spatial_features)
 
         if self.hist_feat == True:
-            hist_features = color_hist(feature_image, nbins=self.hist_bins)
+            hist_features = colorHist(feature_image, nbins=self.hist_bins)
             img_features.append(hist_features)
 
         if self.hog_feat == True:
             if self.hog_channel == 'ALL':
                 hog_features = []
                 for channel in range(feature_image.shape[2]):
-                    hog_features.extend(get_hog_features(feature_image[:,:,channel],
+                    hog_features.extend(getHogFeatures(feature_image[:,:,channel],
                                         self.orient, self.pix_per_cell, self.cell_per_block,
                                         vis=False, feature_vec=True))
             else:
-                hog_features = get_hog_features(feature_image[:,:,hog_channel], self.orient, self.pix_per_cell,
+                hog_features = getHogFeatures(feature_image[:,:,hog_channel], self.orient, self.pix_per_cell,
                                                 self.cell_per_block, vis=False, feature_vec=True)
             img_features.append(hog_features)
 
         return np.concatenate(img_features)
 
-    def search_windows(self, img, windows):
+    def searchWindows(self, img, windows):
         on_windows = []
         for window in windows:
             test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], (64, 64))
-            features = self.single_img_features(test_img)
+            features = self.singleImgFeatures(test_img)
 
             test_features = self.clf.X_scaler.transform(np.array(features).reshape(1, -1))
             prediction = self.clf.predict(test_features)
@@ -134,9 +134,9 @@ class Detector(object):
                 on_windows.append(window)
         return on_windows
 
-    def find_cars(self, img):
+    def findCars(self, img):
         img_tosearch = img[self.y_start:self.y_stop,:,:]
-        img_tosearch = convert_color(img_tosearch, 'RGB2' + self.color_space)
+        img_tosearch = convertColor(img_tosearch, 'RGB2' + self.color_space)
         img = img.astype(np.float32)/255
         if self.scale != 1:
             imshape = img_tosearch.shape
@@ -159,9 +159,9 @@ class Detector(object):
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step + 1
 
         # Compute individual channel HOG features for the entire image
-        hog1 = get_hog_features(ch1, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
-        hog2 = get_hog_features(ch2, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
-        hog3 = get_hog_features(ch3, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
+        hog1 = getHogFeatures(ch1, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
+        hog2 = getHogFeatures(ch2, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
+        hog3 = getHogFeatures(ch3, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
 
         on_windows = []
         for xb in range(nxsteps):
@@ -185,11 +185,11 @@ class Detector(object):
 
                 # Get color features
                 if self.spatial_feat:
-                    spatial_features = bin_spatial(subimg, size=self.spatial_size)
+                    spatial_features = binSpatial(subimg, size=self.spatial_size)
                     features = np.hstack((features, spatial_features))
 
                 if self.hist_feat:
-                    hist_features = color_hist(subimg, nbins=self.hist_bins)
+                    hist_features = colorHist(subimg, nbins=self.hist_bins)
                     features = np.hstack((features, hist_features))
 
                 # Scale features and make a prediction
