@@ -35,12 +35,12 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 1
-        self.heatmaps_threshold = 5
+        self.heat_threshold = 2
 
+        self.heatmaps_threshold = 5
         self.heatmaps = deque(maxlen=self.heatmaps_threshold)
 
-        self.clf = Model(
+        self.classify = Model(
             self.color_space,
             self.orient,
             self.pix_per_cell,
@@ -66,7 +66,7 @@ class Detector(object):
             non_vehicle_dir = os.path.join('annotations/non-vehicles', non_vehicle_dir)
             if os.path.isdir(non_vehicle_dir):
                 not_cars.extend(glob.glob(os.path.join(non_vehicle_dir, '*.png')))
-        self.clf.train(cars, not_cars)
+        self.classify.train(cars, not_cars)
 
     def detectCars(self, img):
         img = img.astype(np.float32)/255
@@ -128,8 +128,8 @@ class Detector(object):
             test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], (64, 64))
             features = self.singleImgFeatures(test_img)
 
-            test_features = self.clf.X_scaler.transform(np.array(features).reshape(1, -1))
-            prediction = self.clf.predict(test_features)
+            test_features = self.classify.X_scaler.transform(np.array(features).reshape(1, -1))
+            prediction = self.classify.predict(test_features)
             if prediction == 1:
                 on_windows.append(window)
         return on_windows
@@ -193,8 +193,8 @@ class Detector(object):
                     features = np.hstack((features, hist_features))
 
                 # Scale features and make a prediction
-                test_features = self.clf.X_scaler.transform(features.reshape(1, -1))
-                test_prediction = self.clf.predict(test_features)
+                test_features = self.classify.X_scaler.transform(features.reshape(1, -1))
+                test_prediction = self.classify.predict(test_features)
 
                 if test_prediction == 1:
                     xbox_left = np.int(xleft * self.scale)
