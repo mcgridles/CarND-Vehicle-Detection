@@ -14,6 +14,7 @@ from skimage.feature import hog
 from sklearn.cross_validation import train_test_split
 from scipy.ndimage.measurements import label
 from collections import deque
+from moviepy.editor import VideoFileClip
 
 class Detector(object):
 
@@ -36,7 +37,7 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 2
+        self.heat_threshold = 10
 
         self.heatmaps_threshold = 5
         self.heatmaps = deque(maxlen=self.heatmaps_threshold)
@@ -71,28 +72,27 @@ class Detector(object):
         self.classify.train(cars, not_cars)
 
     def detectCars(self, img):
-        img = img.astype(np.float32)/255
-
         hot_windows = self.findCars(img)
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
+        heat = addHeat(heat, hot_windows)
+        heat = applyThreshold(heat, 3)
+        self.heatmaps.append(heat)
         if len(self.heatmaps) == 0:
             prev_heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
         else:
             prev_heatmap = sum(self.heatmaps)
-
-        heat = addHeat(heat, hot_windows)
         agg_heatmap = prev_heatmap + heat
         thresh_heatmap = applyThreshold(agg_heatmap, self.heat_threshold)
         thresh_heatmap = np.clip(thresh_heatmap, 0, 255)
         labels = label(thresh_heatmap)
-        self.heatmaps.append(thresh_heatmap)
 
         boxes = drawLabeledBoxes(np.copy(img), labels)
-        # boxes = drawBoxes(img, hot_windows)
-        plt.imshow(thresh_heatmap, cmap='hot')
-        plt.show()
+        # plt.imshow(thresh_heatmap, cmap='hot')
+        # plt.imshow(boxes)
+        # plt.show()
+        return boxes
 
     def singleImgFeatures(self, img):
         img_features = []
@@ -137,7 +137,7 @@ class Detector(object):
         return on_windows
 
     def findCars(self, img):
-        img_tosearch = img[self.y_start:self.y_stop,:,:]
+        img_tosearch = img[self.y_start:self.y_stop,:,:].astype(np.float32)/255
         img_tosearch = convertColor(img_tosearch, 'RGB2' + self.color_space)
         img = img.astype(np.float32)/255
         if self.scale != 1:
@@ -211,6 +211,7 @@ class Detector(object):
 
 if __name__ == '__main__':
     try:
+        # Force train new model
         if sys.argv[1] == 'force':
             force = True
         else:
@@ -218,6 +219,8 @@ if __name__ == '__main__':
     except IndexError:
         force = False
 
-    img = mpimg.imread('test_images/test1.jpg')
     detector = Detector(force)
-    detector.detectCars(img)
+    
+    clip = VideoFileClip('project_video.mp4')
+    processed_video = clip.fl_image(detector.detectCars).subclip(10, 13)
+    processed_video.write_videofile('output_video.mp4', audio=False)

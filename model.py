@@ -10,7 +10,8 @@ from sklearn.externals import joblib
 class Model(object):
 
     def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f, force=False):
-        self.sample_size = 2000
+        # Using > 2858 images causes "ValueError: Input contains NaN, infinity or a value too large for dtype('float64')."
+        self.sample_size = 2858
 
         self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = orient  # HOG orientations
@@ -44,11 +45,11 @@ class Model(object):
 
     def generateClassifier(self, cars, not_cars):
         car_features = extractFeatures(cars, color_space=self.color_space,
-                                        spatial_size=self.spatial_size, hist_bins=self.hist_bins,
-                                        orient=self.orient, pix_per_cell=self.pix_per_cell,
-                                        cell_per_block=self.cell_per_block,
-                                        hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
-                                        hist_feat=self.hist_feat, hog_feat=self.hog_feat)
+                                       spatial_size=self.spatial_size, hist_bins=self.hist_bins,
+                                       orient=self.orient, pix_per_cell=self.pix_per_cell,
+                                       cell_per_block=self.cell_per_block,
+                                       hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
+                                       hist_feat=self.hist_feat, hog_feat=self.hog_feat)
         not_car_features = extractFeatures(not_cars, color_space=self.color_space,
                                            spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                            orient=self.orient, pix_per_cell=self.pix_per_cell,
