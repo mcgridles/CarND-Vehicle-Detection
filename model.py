@@ -7,6 +7,8 @@ from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
+from sklearn.decomposition import PCA
+from sklearn.pipeline import pipeline
 
 class Model(object):
 
@@ -26,7 +28,7 @@ class Model(object):
         self.hog_feat = hog_f # HOG features on or off
 
         self.X_scaler = None
-        self.clf = LinearSVC(C=0.001)
+        self.clf = None
 
     def train(self, force=False):
         # Load classifier and data or generate it
@@ -52,18 +54,18 @@ class Model(object):
             return (X_test, y_test)
 
     def generateClassifier(self):
-        car_features = extractFeatures(carGenerator, sample_size=self.sample_size, color_space=self.color_space,
-                                       spatial_size=self.spatial_size, hist_bins=self.hist_bins,
-                                       orient=self.orient, pix_per_cell=self.pix_per_cell,
-                                       cell_per_block=self.cell_per_block,
-                                       hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
-                                       hist_feat=self.hist_feat, hog_feat=self.hog_feat)
         not_car_features = extractFeatures(notCarGenerator, sample_size=self.sample_size, color_space=self.color_space,
                                            spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                            orient=self.orient, pix_per_cell=self.pix_per_cell,
                                            cell_per_block=self.cell_per_block,
                                            hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
                                            hist_feat=self.hist_feat, hog_feat=self.hog_feat)
+        car_features = extractFeatures(carGenerator, sample_size=self.sample_size, color_space=self.color_space,
+                                       spatial_size=self.spatial_size, hist_bins=self.hist_bins,
+                                       orient=self.orient, pix_per_cell=self.pix_per_cell,
+                                       cell_per_block=self.cell_per_block,
+                                       hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
+                                       hist_feat=self.hist_feat, hog_feat=self.hog_feat)
 
         # Create an array stack of feature vectors
         X = np.vstack((car_features, not_car_features)).astype(np.float64)
@@ -81,6 +83,9 @@ class Model(object):
         X_train = self.X_scaler.transform(X_train)
         X_test = self.X_scaler.transform(X_test)
 
+        pca = PCA(svd_solver='randomized', n_components=200, random_state=815)
+        svm = LinearSVC(C=0.001)
+        self.clf = Pipeline(steps=[('PCA', pca), ('LinearSVC', svm)])
         self.clf.fit(X_train, y_train)
         self.storeClassifier(X_test, y_test)
 
