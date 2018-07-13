@@ -1,7 +1,6 @@
 import os
 import cv2
 import sys
-import glob
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -25,11 +24,11 @@ class Detector(object):
         self.y_stop = 656
         self.scale = 1
         self.xy_window = (64, 64)
-        self.xy_overlap = (0.5, 0.5)
+        self.xy_overlap = (0.75, 0.75)
 
-        self.color_space = 'YUV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+        self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = 11  # HOG orientations
-        self.pix_per_cell = 16 # HOG pixels per cell
+        self.pix_per_cell = 8 # HOG pixels per cell
         self.cell_per_block = 2 # HOG cells per block
         self.hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
         self.spatial_size = (32, 32) # Spatial binning dimensions
@@ -37,7 +36,7 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 10
+        self.heat_threshold = 1
 
         self.heatmaps_threshold = 5
         self.heatmaps = deque(maxlen=self.heatmaps_threshold)
@@ -52,33 +51,19 @@ class Detector(object):
             self.hist_bins,
             self.spatial_feat,
             self.hist_feat,
-            self.hog_feat,
-            force
+            self.hog_feat
         )
-        self.initModel()
-
-    def initModel(self):
-        cars = []
-        not_cars = []
-        for vehicle_dir in os.listdir('annotations/vehicles'):
-            vehicle_dir = os.path.join('annotations/vehicles', vehicle_dir)
-            if os.path.isdir(vehicle_dir):
-                cars.extend(glob.glob(os.path.join(vehicle_dir, '*.png')))
-
-        for non_vehicle_dir in os.listdir('annotations/non-vehicles'):
-            non_vehicle_dir = os.path.join('annotations/non-vehicles', non_vehicle_dir)
-            if os.path.isdir(non_vehicle_dir):
-                not_cars.extend(glob.glob(os.path.join(non_vehicle_dir, '*.png')))
-        self.classify.train(cars, not_cars)
+        self.classify.train(force)
 
     def detectCars(self, img):
-        hot_windows = self.findCars(img)
+        hot_windows= self.findCars(img)
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
         heat = addHeat(heat, hot_windows)
-        heat = applyThreshold(heat, 3)
+        heat = applyThreshold(heat, 1)
         self.heatmaps.append(heat)
+
         if len(self.heatmaps) == 0:
             prev_heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
         else:
@@ -89,6 +74,7 @@ class Detector(object):
         labels = label(thresh_heatmap)
 
         boxes = drawLabeledBoxes(np.copy(img), labels)
+        # boxes = drawBoxes(img, hot_windows)
         # plt.imshow(thresh_heatmap, cmap='hot')
         # plt.imshow(boxes)
         # plt.show()
@@ -139,7 +125,7 @@ class Detector(object):
     def findCars(self, img):
         img_tosearch = img[self.y_start:self.y_stop,:,:].astype(np.float32)/255
         img_tosearch = convertColor(img_tosearch, 'RGB2' + self.color_space)
-        img = img.astype(np.float32)/255
+
         if self.scale != 1:
             imshape = img_tosearch.shape
             img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/self.scale), np.int(imshape[0]/self.scale)))
@@ -196,8 +182,11 @@ class Detector(object):
 
                 # Scale features and make a prediction
                 test_features = self.classify.X_scaler.transform(features.reshape(1, -1))
-                test_prediction = self.classify.predict(test_features)
+                prediction_prob = self.classify.clf.decision_function(test_features)
+                if prediction_prob < 350:
+                    continue
 
+                test_prediction = self.classify.predict(test_features)
                 if test_prediction == 1:
                     xbox_left = np.int(xleft * self.scale)
                     ytop_draw = np.int(ytop * self.scale)
@@ -220,7 +209,10 @@ if __name__ == '__main__':
         force = False
 
     detector = Detector(force)
-    
+    exit(0)
+    # img = mpimg.imread('test_images/test1.jpg')
+    # detector.detectCars(img)
+
     clip = VideoFileClip('project_video.mp4')
-    processed_video = clip.fl_image(detector.detectCars).subclip(10, 13)
+    processed_video = clip.fl_image(detector.detectCars).subclip(12, 15)
     processed_video.write_videofile('output_video.mp4', audio=False)

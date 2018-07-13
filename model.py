@@ -2,6 +2,7 @@ import os
 import numpy as np
 
 from helper_functions import *
+from data_handler import *
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
@@ -9,9 +10,9 @@ from sklearn.externals import joblib
 
 class Model(object):
 
-    def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f, force=False):
+    def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f):
         # Using > 2858 images causes "ValueError: Input contains NaN, infinity or a value too large for dtype('float64')."
-        self.sample_size = 2858
+        self.sample_size = None
 
         self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = orient  # HOG orientations
@@ -24,33 +25,40 @@ class Model(object):
         self.hist_feat = hist_f # Histogram features on or off
         self.hog_feat = hog_f # HOG features on or off
 
-        self.force = force
-
         self.X_scaler = None
         self.clf = LinearSVC(C=0.001)
 
-    def train(self, cars, not_cars):
-        # Reduce the sample size if necessary
-        if self.sample_size:
-            cars = cars[0:self.sample_size]
-            not_cars = not_cars[0:self.sample_size]
-
+    def train(self, force=False):
         # Load classifier and data or generate it
-        X_test, y_test = self.loadClassifier(cars, not_cars)
+        X_test, y_test = self.loadClassifier(force)
         score = round(self.clf.score(X_test, y_test), 4)
         print('\033[1mTest Accuracy of classifier:\033[92m', score, '\033[0m')
 
     def predict(self, features):
         return self.clf.predict(features)
 
-    def generateClassifier(self, cars, not_cars):
-        car_features = extractFeatures(cars, color_space=self.color_space,
+    def storeClassifier(self, X_test, y_test):
+        joblib.dump((self.clf, self.X_scaler, X_test, y_test), 'clf.pkl')
+
+    def loadClassifier(self, force):
+        if not os.path.exists('clf.pkl') or force:
+            return self.generateClassifier()
+        else:
+            loaded_data = joblib.load('clf.pkl')
+            self.clf = loaded_data[0]
+            self.X_scaler = loaded_data[1]
+            X_test = loaded_data[2]
+            y_test = loaded_data[3]
+            return (X_test, y_test)
+
+    def generateClassifier(self):
+        car_features = extractFeatures(carGenerator, sample_size=self.sample_size, color_space=self.color_space,
                                        spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                        orient=self.orient, pix_per_cell=self.pix_per_cell,
                                        cell_per_block=self.cell_per_block,
                                        hog_channel=self.hog_channel, spatial_feat=self.spatial_feat,
                                        hist_feat=self.hist_feat, hog_feat=self.hog_feat)
-        not_car_features = extractFeatures(not_cars, color_space=self.color_space,
+        not_car_features = extractFeatures(notCarGenerator, sample_size=self.sample_size, color_space=self.color_space,
                                            spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                            orient=self.orient, pix_per_cell=self.pix_per_cell,
                                            cell_per_block=self.cell_per_block,
@@ -77,17 +85,3 @@ class Model(object):
         self.storeClassifier(X_test, y_test)
 
         return (X_test, y_test)
-
-    def storeClassifier(self, X_test, y_test):
-        joblib.dump((self.clf, self.X_scaler, X_test, y_test), 'clf.pkl')
-
-    def loadClassifier(self, cars, not_cars):
-        if not os.path.exists('clf.pkl') or self.force:
-            return self.generateClassifier(cars, not_cars)
-        else:
-            loaded_data = joblib.load('clf.pkl')
-            self.clf = loaded_data[0]
-            self.X_scaler = loaded_data[1]
-            X_test = loaded_data[2]
-            y_test = loaded_data[3]
-            return (X_test, y_test)

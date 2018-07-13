@@ -37,13 +37,12 @@ def colorHist(img, nbins=32, bins_range=(0, 256)):
     hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
     return hist_features
 
-def extractFeatures(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9, pix_per_cell=8,
-                    cell_per_block=2, hog_channel=0, spatial_feat=True, hist_feat=True, hog_feat=True):
+def extractFeatures(generator, sample_size=None, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9,
+                    pix_per_cell=8, cell_per_block=2, hog_channel=0, spatial_feat=True, hist_feat=True, hog_feat=True):
     # Create a list to append feature vectors to
     features = []
-    for file in imgs:
+    for image in generator(sample_size):
         file_features = []
-        image = mpimg.imread(file)
 
         # apply color conversion if other than 'RGB'
         if color_space != 'RGB':
@@ -70,6 +69,7 @@ def extractFeatures(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=32
 
             file_features.append(hog_features)
         features.append(np.concatenate(file_features))
+
     return features
 
 def slideWindow(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
