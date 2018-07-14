@@ -97,7 +97,7 @@ def notCarGenerator(sample_size=None):
     if sample_size:
         not_cars = not_cars[0:sample_size]
 
-    for image in not_cars:
+    for filename in not_cars:
         img = mpimg.imread(filename)
 
         yield img

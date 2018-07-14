@@ -2,13 +2,13 @@ import os
 import numpy as np
 
 from helper_functions import *
-from data_handler import *
+from data_functions import *
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
 from sklearn.decomposition import PCA
-from sklearn.pipeline import pipeline
+from sklearn.pipeline import Pipeline
 
 class Model(object):
 
