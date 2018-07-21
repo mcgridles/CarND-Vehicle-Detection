@@ -42,14 +42,14 @@ The code for this step is contained in the function `getHogFeatures()` (lines 7-
 
 I started by reading in all the `vehicle` and `non-vehicle` images. This included reading the `labels.csv` files in the Autti and CrowdAI datasets and organizing the data in a pandas DataFrame. I then used to loaded each image, scaled and resized if necessary, and used a generator to pass them to the `extractFeatures()` function (lines 40-75 in `helper_functions.py`). Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
-![alt text][output_images/vehicle_image.png]
-![alt text][output_images/non_vehicle_image.png]
+![alt text](output_images/vehicle_image.png)
+![alt text](output_images/non_vehicle_image.png)
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
 Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
-![alt text][output_images/hog_features.png]
+![alt text](output_images/hog_features.png)
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
@@ -69,7 +69,7 @@ I pretty much just used the standard `findCars()` function that was used during 
 
 Honestly, my pipeline doesn't work. I have been playing with training parameters for weeks now, and while it occasionally identifies cars correctly, for the most part there are so many false positives and so few correct identifications that it's impossible to filter out the false positives, and doesn't seem like the classifier is correctly identifying cars. This is especially frustrating because of how well it performs on the validation data. Ultimately I searched on one scale using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided slightly better results than any other combination.  Here is an example image:
 
-![alt text][output_images/sliding_window.png]
+![alt text](output_images/sliding_window.png)
 ---
 
 ### Video Implementation
@@ -85,26 +85,26 @@ The most effective filter is filtering out false predictions in lines 186-188 in
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
-![alt text][output_images/image4.png]
-![alt text][output_images/image10.png]
-![alt text][output_images/image16.png]
-![alt text][output_images/image25.png]
-![alt text][output_images/image45.png]
-![alt text][output_images/image130.png]
-![alt text][output_images/heatmap4.png]
-![alt text][output_images/heatmap10.png]
-![alt text][output_images/heatmap16.png]
-![alt text][output_images/heatmap25.png]
-![alt text][output_images/heatmap45.png]
-![alt text][output_images/heatmap130.png]
+![alt text](output_images/image4.png)
+![alt text](output_images/image10.png)
+![alt text](output_images/image16.png)
+![alt text](output_images/image25.png)
+![alt text](output_images/image45.png)
+![alt text](output_images/image130.png)
+![alt text](output_images/heatmap4.jpg)
+![alt text](output_images/heatmap10.jpg)
+![alt text](output_images/heatmap16.jpg)
+![alt text](output_images/heatmap25.jpg)
+![alt text](output_images/heatmap45.jpg)
+![alt text](output_images/heatmap130.jpg)
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][output_images/labeled_boxes4.png]
-![alt text][output_images/labeled_boxes10.png]
-![alt text][output_images/labeled_boxes16.png]
-![alt text][output_images/labeled_boxes25.png]
-![alt text][output_images/labeled_boxes45.png]
-![alt text][output_images/labeled_boxes130.png]
+![alt text](output_images/labeled_boxes4.png)
+![alt text](output_images/labeled_boxes10.png)
+![alt text](output_images/labeled_boxes16.png)
+![alt text](output_images/labeled_boxes25.png)
+![alt text](output_images/labeled_boxes45.png)
+![alt text](output_images/labeled_boxes130.png)
 
 ---
 
