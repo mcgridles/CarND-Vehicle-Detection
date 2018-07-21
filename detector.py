@@ -59,8 +59,6 @@ class Detector(object):
     def detectCars(self, img):
         self.count += 1
         hot_windows = self.findCars(img)
-        plt.imshow(img)
-        plt.savefig('output_images/image{0}.png'.format(self.count))
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
@@ -78,11 +76,7 @@ class Detector(object):
         labels = label(thresh_heatmap)
 
         boxes = drawLabeledBoxes(np.copy(img), labels)
-        # boxes = drawBoxes(img, hot_windows)
-        plt.imshow(thresh_heatmap, cmap='hot')
-        plt.savefig('output_images/heatmap{0}.jpg'.format(self.count))
-        plt.imshow(boxes)
-        plt.savefig('output_images/labeled_boxes{0}.png'.format(self.count))
+        # plt.imshow(boxes)
         # plt.show()
         return boxes
 

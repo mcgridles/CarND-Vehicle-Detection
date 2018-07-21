@@ -118,7 +118,5 @@ def notCarGenerator(sample_size=None):
             augmented_img = func(img)
             if np.max(img) > 1:
                 augmented_img = img.astype(np.float32) / 255
-
-            cv2.imwrite('output_images/non_vehicle_image.png', augmented_img * 255)
-            exit(0)
+                
             yield augmented_img
