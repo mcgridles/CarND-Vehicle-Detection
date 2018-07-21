@@ -17,14 +17,14 @@ from moviepy.editor import VideoFileClip
 
 class Detector(object):
 
-    def __init__(self, force):
+    def __init__(self, train, sample_size):
         self.x_start = 0
         self.x_stop = 1280
-        self.y_start = 350
+        self.y_start = 300
         self.y_stop = 656
-        self.scale = 1
+        self.scale = 1.2
         self.xy_window = (64, 64)
-        self.xy_overlap = (0.75, 0.75)
+        self.xy_overlap = (0.8, 0.8)
 
         self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = 11  # HOG orientations
@@ -36,10 +36,10 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 1
+        self.heat_threshold = 20
 
-        self.heatmaps_threshold = 5
-        self.heatmaps = deque(maxlen=self.heatmaps_threshold)
+        self.heatmaps_frames = 10
+        self.heatmaps = deque(maxlen=self.heatmaps_frames)
 
         self.classify = Model(
             self.color_space,
@@ -51,12 +51,16 @@ class Detector(object):
             self.hist_bins,
             self.spatial_feat,
             self.hist_feat,
-            self.hog_feat
+            self.hog_feat,
         )
-        self.classify.train(force)
+        self.classify.train(train, sample_size)
+        self.count = 0
 
     def detectCars(self, img):
-        hot_windows= self.findCars(img)
+        self.count += 1
+        hot_windows = self.findCars(img)
+        plt.imshow(img)
+        plt.savefig('output_images/image{0}.png'.format(self.count))
 
         # create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
@@ -75,8 +79,10 @@ class Detector(object):
 
         boxes = drawLabeledBoxes(np.copy(img), labels)
         # boxes = drawBoxes(img, hot_windows)
-        # plt.imshow(thresh_heatmap, cmap='hot')
-        # plt.imshow(boxes)
+        plt.imshow(thresh_heatmap, cmap='hot')
+        plt.savefig('output_images/heatmap{0}.jpg'.format(self.count))
+        plt.imshow(boxes)
+        plt.savefig('output_images/labeled_boxes{0}.png'.format(self.count))
         # plt.show()
         return boxes
 
@@ -181,12 +187,13 @@ class Detector(object):
                     features = np.hstack((features, hist_features))
 
                 # Scale features and make a prediction
-                test_features = self.classify.X_scaler.transform(features.reshape(1, -1))
-                prediction_prob = self.classify.clf.decision_function(test_features)
-                if prediction_prob < 350:
+                features = self.classify.X_scaler.transform(features.reshape(1, -1))
+                features = self.classify.pca.transform(features)
+                prediction_prob = self.classify.clf.decision_function(features)
+                if prediction_prob < 250:
                     continue
 
-                test_prediction = self.classify.predict(test_features)
+                test_prediction = self.classify.predict(features)
                 if test_prediction == 1:
                     xbox_left = np.int(xleft * self.scale)
                     ytop_draw = np.int(ytop * self.scale)
@@ -199,20 +206,21 @@ class Detector(object):
         return on_windows
 
 if __name__ == '__main__':
+    train = False
+    sample_size = None
     try:
         # Force train new model
-        if sys.argv[1] == 'force':
-            force = True
-        else:
-            force = False
-    except IndexError:
-        force = False
+        if sys.argv[1] == 'train':
+            train = True
+        sample_size = int(sys.argv[2])
+    except (IndexError, ValueError):
+        pass
 
-    detector = Detector(force)
-    exit(0)
+    detector = Detector(train, sample_size)
     # img = mpimg.imread('test_images/test1.jpg')
     # detector.detectCars(img)
 
-    clip = VideoFileClip('project_video.mp4')
-    processed_video = clip.fl_image(detector.detectCars).subclip(12, 15)
-    processed_video.write_videofile('output_video.mp4', audio=False)
+    if not train:
+        clip = VideoFileClip('project_video.mp4')
+        processed_video = clip.fl_image(detector.detectCars)
+        processed_video.write_videofile('output_video.mp4', audio=False)

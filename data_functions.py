@@ -1,6 +1,7 @@
 import os
 import glob
 import cv2
+import random
 import pandas as pd
 import numpy as np
 import matplotlib.image as mpimg
@@ -61,21 +62,28 @@ def carGenerator(sample_size=None):
             data = pd.DataFrame({'frame': frames, 'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax})
             gti_df = gti_df.append(data)
 
-    # Reduce the sample size if necessary
-    if sample_size:
-        gti_df = gti_df[0:sample_size]
-
     generator = loadDataset()
     autti_df = next(generator)
     crowdai_df = next(generator)
-    cars_df = pd.concat([autti_df, crowdai_df, gti_df])
+
+    # Reduce the sample size if necessary
+    if sample_size:
+        autti_df = autti_df.sample(frac=1).reset_index(drop=True)
+        crowdai_df = crowdai_df.sample(frac=1).reset_index(drop=True)
+        gti_df = gti_df.sample(frac=1).reset_index(drop=True)
+        autti_df = autti_df[:sample_size]
+        crowdai_df = autti_df[:sample_size]
+        gti_df = gti_df[:sample_size]
+
+    cars_df = pd.concat([gti_df, autti_df, crowdai_df])
 
     for i, row in cars_df.iterrows():
         filename = row['frame']
         img = mpimg.imread(filename)
+        if filename[-3:] == 'jpg':
+            img = img.astype(np.float32)/255
 
         for j in range(len(row['xmin'])):
-
             if row['ymin'][j] == row['ymax'][j] or row['xmin'][j] == row['xmax'][j]:
                 continue
 
@@ -95,9 +103,22 @@ def notCarGenerator(sample_size=None):
             not_cars.extend(glob.glob(os.path.join(non_vehicle_dir, '*.png')))
 
     if sample_size:
+        not_cars = shuffle(not_cars)
         not_cars = not_cars[0:sample_size]
+
+    # Functions for augmenting dataset
+    basic_image = lambda image: image
+    flip_image = lambda image: cv2.flip(image, 1)
+    augmentation_funcs = [basic_image, flip_image]
 
     for filename in not_cars:
         img = mpimg.imread(filename)
 
-        yield img
+        for func in augmentation_funcs:
+            augmented_img = func(img)
+            if np.max(img) > 1:
+                augmented_img = img.astype(np.float32) / 255
+
+            cv2.imwrite('output_images/non_vehicle_image.png', augmented_img * 255)
+            exit(0)
+            yield augmented_img

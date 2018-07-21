@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 
 from skimage.feature import hog
+import matplotlib.pyplot as plt
 
 def getHogFeatures(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     # Call with two outputs if vis==True
@@ -59,9 +60,11 @@ def extractFeatures(generator, sample_size=None, color_space='RGB', spatial_size
             if hog_channel == 'ALL':
                 hog_features = []
                 for channel in range(feature_image.shape[2]):
-                    hog_features.append(getHogFeatures(feature_image[:,:,channel],
-                                        orient, pix_per_cell, cell_per_block,
-                                        vis=False, feature_vec=True))
+                    hog_vec, image = getHogFeatures(feature_image[:,:,channel], orient, pix_per_cell, cell_per_block,
+                                                vis=True, feature_vec=True)
+                    if np.isnan(hog_vec).any():
+                        hog_vec = [0 if np.isnan(x) else x for x in hog_vec]
+                    hog_features.append(hog_vec)
                 hog_features = np.ravel(hog_features)
             else:
                 hog_features = getHogFeatures(feature_image[:,:,hog_channel], orient,
@@ -113,27 +116,32 @@ def slideWindow(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_wi
     return window_list
 
 def convertColor(img, conv='RGB2YCrCb'):
+    converted_img = None
     if conv == 'RGB2YCrCb':
-        return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
     elif conv == 'RGB2LUV':
-        return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
     elif conv == 'RGB2HSV':
-        return cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     elif conv == 'RGB2HLS':
-        return cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     elif conv == 'RGB2YUV':
-        return cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
 
     if conv == 'BGR2YCrCb':
-        return cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     elif conv == 'BGR2LUV':
-        return cv2.cvtColor(img, cv2.COLOR_BGR2LUV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2LUV)
     elif conv == 'BGR2HSV':
-        return cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     elif conv == 'BGR2HLS':
-        return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
     elif conv == 'BGR2YUV':
-        return cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+        converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+
+    if np.max(converted_img) > 1:
+        converted_img = converted_img.astype(np.float32) / 255
+    return converted_img
 
 def addHeat(heatmap, bbox_list):
     for box in bbox_list:
