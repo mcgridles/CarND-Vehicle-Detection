@@ -63,7 +63,7 @@ I trained a linear SVM using 15,000+ data points, principle component analysis, 
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I pretty much just used the standard `findCars()` function that was used during the lessons. I decided on the scale based on experimentation. I went with a scale of 1.2 because it was effective and did not increase the processing time, which was an issue with lower scales.
+I pretty much just used the standard `findCars()` function that was used during the lessons. I decided on the scale based on experimentation. I went with a scales of 1.0, 2.0, and 3.0 because they seemed about as effective as any other scale and did not increase the processing time, which was an issue with lower scales.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
@@ -85,26 +85,26 @@ The most effective filter is filtering out false predictions in lines 186-188 in
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
-![alt text](output_images/image4.png)
+![alt text](output_images/image2.png)
 ![alt text](output_images/image10.png)
-![alt text](output_images/image16.png)
-![alt text](output_images/image25.png)
-![alt text](output_images/image45.png)
-![alt text](output_images/image130.png)
-![alt text](output_images/heatmap4.jpg)
-![alt text](output_images/heatmap10.jpg)
-![alt text](output_images/heatmap16.jpg)
-![alt text](output_images/heatmap25.jpg)
-![alt text](output_images/heatmap45.jpg)
-![alt text](output_images/heatmap130.jpg)
+![alt text](output_images/image20.png)
+![alt text](output_images/image30.png)
+![alt text](output_images/image50.png)
+![alt text](output_images/image60.png)
+![alt text](output_images/heatmap2.png)
+![alt text](output_images/heatmap10.png)
+![alt text](output_images/heatmap20.png)
+![alt text](output_images/heatmap30.png)
+![alt text](output_images/heatmap50.png)
+![alt text](output_images/heatmap60.png)
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text](output_images/labeled_boxes4.png)
+![alt text](output_images/labeled_boxes2.png)
 ![alt text](output_images/labeled_boxes10.png)
-![alt text](output_images/labeled_boxes16.png)
-![alt text](output_images/labeled_boxes25.png)
-![alt text](output_images/labeled_boxes45.png)
-![alt text](output_images/labeled_boxes130.png)
+![alt text](output_images/labeled_boxes20.png)
+![alt text](output_images/labeled_boxes30.png)
+![alt text](output_images/labeled_boxes50.png)
+![alt text](output_images/labeled_boxes60.png)
 
 ---
 
@@ -112,6 +112,7 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
+##### First submission comments
 I'm so stuck on this project. I've been working on it for weeks and I feel like I'm actually pretty close, but that last little bit is really causing huge issues in the pipeline. I have experimented a lot, as well as read posts on the discussion boards, and found what I think is a good set of parameters. I'm using both the Udacity data set, the Autti dataset, and the CrowdAI dataset to train my classifier, and I used 15,000+ images, which was the most I could do on and AWS EC2 instance without running into memory issues. This gets me to my classifier is 98% accurate or more when run on the validation data.
 
 I'm also thresholding both based on the confidence measure of each prediction, and on the heat maps, although thresholding on the heat maps has been difficult because the false positives are about as dense, if not more dense, than the correct identifications, which means that filtering them out also filters out areas that I want to keep.
@@ -119,3 +120,8 @@ I'm also thresholding both based on the confidence measure of each prediction, a
 I am very stuck and could really use some help and feedback. Again, I think I understand what is happening and have played around with it enough to feel like I am close, but for some reason I have reached a point where no matter what I do nothing really improves.
 
 The pipeline is also incredibly slow when processing the video, which is mostly due to `pixels_per_cell` being so low, but I know from reading discussions on the forum that having `pixels_per_cell = 8` is not uncommon, so I'm wondering if there's anything that could be done to speed it up. It seems like everything is necessary so I'm struggling to identify what could be made faster. It took about an hour and a half just to process 10 seconds of video, which is why I did not process the full video (upwards of 8 hours).
+
+##### Second submission comments
+This is my second submission, and I'm still having issues. The advice from the reviewer on the first one was to implement multiple sliding window scales, which helped a little bit, but still didn't have a huge effect because the classifier just really isn't identifying the cars at all, despite 98% accuracy.
+
+I would also really like some advice on speeding up the pipeline, because it takes about 20 minutes to process 3 seconds of video, so it will take all day to process the entire video.
