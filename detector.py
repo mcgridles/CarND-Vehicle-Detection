@@ -22,9 +22,9 @@ class Detector(object):
         self.x_stop = 1280
         self.y_start = 300
         self.y_stop = 656
-        self.scale = 1.2
+        self.scales = [1.0, 2.0, 3.0]
         self.xy_window = (64, 64)
-        self.xy_overlap = (0.8, 0.8)
+        self.xy_overlap = (0.75, 0.75)
 
         self.color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
         self.orient = 11  # HOG orientations
@@ -36,7 +36,8 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 20
+        self.heat_threshold = 7
+        self.confidence_threshold = 400
 
         self.heatmaps_frames = 10
         self.heatmaps = deque(maxlen=self.heatmaps_frames)
@@ -54,24 +55,17 @@ class Detector(object):
             self.hog_feat,
         )
         self.classify.train(train, sample_size)
-        self.count = 0
 
     def detectCars(self, img):
-        self.count += 1
         hot_windows = self.findCars(img)
 
-        # create heatmap
+        # Create heatmap
         heat = np.zeros_like(img[:,:,0]).astype(np.float)
         heat = addHeat(heat, hot_windows)
-        heat = applyThreshold(heat, 1)
         self.heatmaps.append(heat)
 
-        if len(self.heatmaps) == 0:
-            prev_heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
-        else:
-            prev_heatmap = sum(self.heatmaps)
-        agg_heatmap = prev_heatmap + heat
-        thresh_heatmap = applyThreshold(agg_heatmap, self.heat_threshold)
+        avg_heatmap = sum(self.heatmaps) / len(self.heatmaps)
+        thresh_heatmap = applyThreshold(avg_heatmap, self.heat_threshold)
         thresh_heatmap = np.clip(thresh_heatmap, 0, 255)
         labels = label(thresh_heatmap)
 
@@ -126,76 +120,75 @@ class Detector(object):
         img_tosearch = img[self.y_start:self.y_stop,:,:].astype(np.float32)/255
         img_tosearch = convertColor(img_tosearch, 'RGB2' + self.color_space)
 
-        if self.scale != 1:
-            imshape = img_tosearch.shape
-            img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/self.scale), np.int(imshape[0]/self.scale)))
-
-        ch1 = img_tosearch[:,:,0]
-        ch2 = img_tosearch[:,:,1]
-        ch3 = img_tosearch[:,:,2]
-
-        # Define blocks and steps as above
-        nxblocks = (ch1.shape[1] // self.pix_per_cell) - self.cell_per_block + 1
-        nyblocks = (ch1.shape[0] // self.pix_per_cell) - self.cell_per_block + 1
-        nfeat_per_block = self.orient * self.cell_per_block**2
-
-        # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
-        window = 64
-        nblocks_per_window = (window // self.pix_per_cell) - self.cell_per_block + 1
-        cells_per_step = 2  # Instead of overlap, define how many cells to step
-        nxsteps = (nxblocks - nblocks_per_window) // cells_per_step + 1
-        nysteps = (nyblocks - nblocks_per_window) // cells_per_step + 1
-
-        # Compute individual channel HOG features for the entire image
-        hog1 = getHogFeatures(ch1, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
-        hog2 = getHogFeatures(ch2, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
-        hog3 = getHogFeatures(ch3, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
-
         on_windows = []
-        for xb in range(nxsteps):
-            for yb in range(nysteps):
-                features = []
-                ypos = yb * cells_per_step
-                xpos = xb * cells_per_step
+        for scale in self.scales:
+            if scale != 1:
+                imshape = img_tosearch.shape
+                img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/scale), np.int(imshape[0]/scale)))
 
-                # Extract HOG for this patch
-                if self.hog_feat:
-                    hog_feat1 = hog1[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
-                    hog_feat2 = hog2[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
-                    hog_feat3 = hog3[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
-                    features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
+            ch1 = img_tosearch[:,:,0]
+            ch2 = img_tosearch[:,:,1]
+            ch3 = img_tosearch[:,:,2]
 
-                xleft = xpos * self.pix_per_cell
-                ytop = ypos * self.pix_per_cell
+            # Define blocks and steps as above
+            nxblocks = (ch1.shape[1] // self.pix_per_cell) - self.cell_per_block + 1
+            nyblocks = (ch1.shape[0] // self.pix_per_cell) - self.cell_per_block + 1
+            nfeat_per_block = self.orient * self.cell_per_block**2
 
-                # Extract the image patch
-                subimg = cv2.resize(img_tosearch[ytop:ytop+window, xleft:xleft+window], (64,64))
+            # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
+            window = 64
+            nblocks_per_window = (window // self.pix_per_cell) - self.cell_per_block + 1
+            cells_per_step = 2  # Instead of overlap, define how many cells to step
+            nxsteps = (nxblocks - nblocks_per_window) // cells_per_step + 1
+            nysteps = (nyblocks - nblocks_per_window) // cells_per_step + 1
 
-                # Get color features
-                if self.spatial_feat:
-                    spatial_features = binSpatial(subimg, size=self.spatial_size)
-                    features = np.hstack((features, spatial_features))
+            # Compute individual channel HOG features for the entire image
+            hog1 = getHogFeatures(ch1, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
+            hog2 = getHogFeatures(ch2, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
+            hog3 = getHogFeatures(ch3, self.orient, self.pix_per_cell, self.cell_per_block, feature_vec=False)
 
-                if self.hist_feat:
-                    hist_features = colorHist(subimg, nbins=self.hist_bins)
-                    features = np.hstack((features, hist_features))
+            for xb in range(nxsteps):
+                for yb in range(nysteps):
+                    features = []
+                    ypos = yb * cells_per_step
+                    xpos = xb * cells_per_step
 
-                # Scale features and make a prediction
-                features = self.classify.X_scaler.transform(features.reshape(1, -1))
-                features = self.classify.pca.transform(features)
-                prediction_prob = self.classify.clf.decision_function(features)
-                if prediction_prob < 250:
-                    continue
+                    # Extract HOG for this patch
+                    if self.hog_feat:
+                        hog_feat1 = hog1[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
+                        hog_feat2 = hog2[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
+                        hog_feat3 = hog3[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
+                        features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
 
-                test_prediction = self.classify.predict(features)
-                if test_prediction == 1:
-                    xbox_left = np.int(xleft * self.scale)
-                    ytop_draw = np.int(ytop * self.scale)
-                    win_draw = np.int(window * self.scale)
-                    on_windows.append((
-                        (xbox_left, ytop_draw+self.y_start),
-                        (xbox_left+win_draw,ytop_draw+win_draw+self.y_start)
-                    ))
+                    xleft = xpos * self.pix_per_cell
+                    ytop = ypos * self.pix_per_cell
+
+                    # Extract the image patch
+                    subimg = cv2.resize(img_tosearch[ytop:ytop+window, xleft:xleft+window], (64,64))
+
+                    # Get color features
+                    if self.spatial_feat:
+                        spatial_features = binSpatial(subimg, size=self.spatial_size)
+                        features = np.hstack((features, spatial_features))
+
+                    if self.hist_feat:
+                        hist_features = colorHist(subimg, nbins=self.hist_bins)
+                        features = np.hstack((features, hist_features))
+
+                    # Scale features and make a prediction
+                    features = self.classify.X_scaler.transform(features.reshape(1, -1))
+                    features = self.classify.pca.transform(features)
+
+                    # Find prediction confidence
+                    prediction_prob = self.classify.clf.decision_function(features)
+                    if prediction_prob >= self.confidence_threshold:
+                        xbox_left = np.int(xleft * scale)
+                        ytop_draw = np.int(ytop * scale)
+                        win_draw = np.int(window * scale)
+                        on_windows.append((
+                            (xbox_left, ytop_draw+self.y_start),
+                            (xbox_left+win_draw,ytop_draw+win_draw+self.y_start)
+                        ))
 
         return on_windows
 
@@ -216,5 +209,5 @@ if __name__ == '__main__':
 
     if not train:
         clip = VideoFileClip('project_video.mp4')
-        processed_video = clip.fl_image(detector.detectCars)
+        processed_video = clip.fl_image(detector.detectCars).subclip(5, 15)
         processed_video.write_videofile('output_video.mp4', audio=False)
