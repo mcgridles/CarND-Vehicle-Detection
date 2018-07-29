@@ -36,8 +36,8 @@ class Detector(object):
         self.spatial_feat = True # Spatial features on or off
         self.hist_feat = True # Histogram features on or off
         self.hog_feat = True # HOG features on or off
-        self.heat_threshold = 7
-        self.confidence_threshold = 400
+        self.heat_threshold = 1
+        self.confidence_threshold = 100
 
         self.heatmaps_frames = 10
         self.heatmaps = deque(maxlen=self.heatmaps_frames)
@@ -78,9 +78,11 @@ class Detector(object):
         img_features = []
         if self.color_space != 'RGB':
             feature_image = convertColor(img, 'RGB2' + self.color_space)
-            img = img.astype(np.float32)/255
         else:
             feature_image = np.copy(img)
+        if np.max(feature_image) <= 1:
+            feature_image = feature_image * 255
+            feature_image = feature_image.astype(np.uint8)
 
         if self.spatial_feat == True:
             spatial_features = binSpatial(feature_image, size=self.spatial_size)
@@ -117,7 +119,7 @@ class Detector(object):
         return on_windows
 
     def findCars(self, img):
-        img_tosearch = img[self.y_start:self.y_stop,:,:].astype(np.float32)/255
+        img_tosearch = img[self.y_start:self.y_stop,:,:]
         img_tosearch = convertColor(img_tosearch, 'RGB2' + self.color_space)
 
         on_windows = []

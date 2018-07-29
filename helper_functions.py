@@ -28,15 +28,18 @@ def binSpatial(img, size=(32, 32)):
     features = cv2.resize(img, size).ravel()
     return features
 
-def colorHist(img, nbins=32, bins_range=(0, 256)):
+def colorHist(img, nbins=32, bins_range=(0, 256), separate_channels=False):
     # Compute the histogram of the color channels separately
     channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
     channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
     channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
 
     # Concatenate the histograms into a single feature vector
-    hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
-    return hist_features
+    if not separate_channels:
+        hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+        return hist_features
+    else:
+        return (channel1_hist, channel2_hist, channel3_hist)
 
 def extractFeatures(generator, sample_size=None, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9,
                     pix_per_cell=8, cell_per_block=2, hog_channel=0, spatial_feat=True, hist_feat=True, hog_feat=True):
@@ -139,8 +142,9 @@ def convertColor(img, conv='RGB2YCrCb'):
     elif conv == 'BGR2YUV':
         converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
-    if np.max(converted_img) > 1:
-        converted_img = converted_img.astype(np.float32) / 255
+    if np.max(converted_img) <= 1:
+        converted_img = converted_img * 255
+        converted_img = converted_img.astype(np.uint8)
     return converted_img
 
 def addHeat(heatmap, bbox_list):

@@ -13,7 +13,6 @@ from sklearn.decomposition import PCA
 class Model(object):
 
     def __init__(self, c_space, orient, ppc, cpb, hog_chan, spatial_s, hist_b, spatial_f, hist_f, hog_f):
-        # Using > 2858 images causes "ValueError: Input contains NaN, infinity or a value too large for dtype('float64')."
         self.sample_size = None
 
         self.color_space = c_space # Can be RGB, HSV, LUV, HLS, YUV, YCrCb

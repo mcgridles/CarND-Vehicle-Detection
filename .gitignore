@@ -8,6 +8,7 @@ __pycache__/
 # Project files
 examples/
 annotations/
+.ipynb_checkpoints/
 test_video.mp4
 project_video.mp4
 clf.pkl

@@ -80,15 +80,20 @@ def carGenerator(sample_size=None):
     for i, row in cars_df.iterrows():
         filename = row['frame']
         img = mpimg.imread(filename)
-        if filename[-3:] == 'jpg':
-            img = img.astype(np.float32)/255
+        if np.max(img) <= 1:
+            img = img * 255
+            img = img.astype(np.uint8)
 
         for j in range(len(row['xmin'])):
             if row['ymin'][j] == row['ymax'][j] or row['xmin'][j] == row['xmax'][j]:
                 continue
 
             # crop image to correct section and resize
-            img_tosearch = img[int(row['ymin'][j]):int(row['ymax'][j]), int(row['xmin'][j]):int(row['xmax'][j]), :].astype(np.float32)
+            img_tosearch = img[
+                int(row['ymin'][j]):int(row['ymax'][j]),
+                int(row['xmin'][j]):int(row['xmax'][j]),
+                :
+            ]
             img_tosearch = cv2.resize(img_tosearch, (64, 64))
             yield img_tosearch
 
@@ -116,7 +121,8 @@ def notCarGenerator(sample_size=None):
 
         for func in augmentation_funcs:
             augmented_img = func(img)
-            if np.max(img) > 1:
-                augmented_img = img.astype(np.float32) / 255
-                
+            if np.max(augmented_img) <= 1:
+                augmented_img = augmented_img * 255
+                augmented_img = augmented_img.astype(np.uint8)
+
             yield augmented_img
