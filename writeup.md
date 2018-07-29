@@ -57,17 +57,17 @@ I tried various combinations of parameters and I honestly never really found one
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using 15,000+ data points, principle component analysis, and a standard scaler. This happens in the `Model` class in `model.py`. I was able to train it to upwards of 98% accuracy, but it still never seemed to fully know what a car was in an image. While it did sometimes seem to identified the cars occasionally, there are so many false positives that it is impossible to filter them out without also filtering out the true positives.
+I trained a linear SVM using 15,000+ data points, principle component analysis, and a standard scaler. This happens in the `Model` class.
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I pretty much just used the standard `findCars()` function that was used during the lessons. I decided on the scale based on experimentation. I went with a scales of 1.0, 2.0, and 3.0 because they seemed about as effective as any other scale and did not increase the processing time, which was an issue with lower scales.
+I pretty much just used the standard `findCars()` function that was used during the lessons. I decided on the scale based on experimentation. I went with a scales of 1.0, 1.5, 2.0, and 2.5 because they seemed about as effective as any other scale and did not increase the processing time, which was an issue with lower scales.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Honestly, my pipeline doesn't work. I have been playing with training parameters for weeks now, and while it occasionally identifies cars correctly, for the most part there are so many false positives and so few correct identifications that it's impossible to filter out the false positives, and doesn't seem like the classifier is correctly identifying cars. This is especially frustrating because of how well it performs on the validation data. Ultimately I searched on one scale using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided slightly better results than any other combination.  Here is an example image:
+Honestly, my pipeline doesn't work. I have been playing with training parameters for weeks now, and while it seems to mostly identify cars, it doesn't do that great of a job and there are too many false positives to filter them out. This is especially frustrating because of how well it performs on the validation data. Ultimately I searched on one scale using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided slightly better results than any other combination.  Here is an example image:
 
 ![alt text](output_images/sliding_window.png)
 ---
@@ -75,14 +75,14 @@ Honestly, my pipeline doesn't work. I have been playing with training parameters
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./output_video.mp4)
 
+Here's a [link to my video result](./output_video.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-The most effective filter is filtering out false predictions in lines 186-188 in `detector.py`, where I get the prediction probability using `decision_function()` and filter out predictions that are below a certain confidence threshold. I also thresholded bounding boxes in the heatmap, although there were so many false positives that it made it difficult not filter them out and not also filter out the correct identifications. I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+The most effective filter is filtering out false predictions using `decision_function()` and filter out predictions that are below a certain confidence threshold. I also thresholded bounding boxes in the heat map, although there were so many false positives that it made it difficult not filter them out and not also filter out the correct identifications. I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heat map and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heat map.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
+Here's an example result showing the heat map from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
 ![alt text](output_images/image2.png)
