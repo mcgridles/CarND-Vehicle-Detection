@@ -11,4 +11,5 @@ annotations/
 .ipynb_checkpoints/
 test_video.mp4
 project_video.mp4
-clf.pkl
+classifier.pkl
+.idea/

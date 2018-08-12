@@ -14,16 +14,6 @@ The goals / steps of this project are the following:
 * Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
 
-[//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
-
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
@@ -38,14 +28,14 @@ You're reading it!
 
 #### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the function `getHogFeatures()` (lines 7-24 in `helper_functions.py`).
+The code for this step is contained in the function `getHogFeatures()` (cell 4 in `vehicle_detection.ipynb`).
 
-I started by reading in all the `vehicle` and `non-vehicle` images. This included reading the `labels.csv` files in the Autti and CrowdAI datasets and organizing the data in a pandas DataFrame. I then used to loaded each image, scaled and resized if necessary, and used a generator to pass them to the `extractFeatures()` function (lines 40-75 in `helper_functions.py`). Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+I started by getting all of the vehicle and non-vehicle image paths in the Udacity dataset. I then called the `extractFeatures()` function (cell 4 `vehicle_detection.ipynb`)  which loaded each image one at a time and extracted features, including HOG features, from the images. Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
 ![alt text](output_images/vehicle_image.png)
 ![alt text](output_images/non_vehicle_image.png)
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+I explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
 Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
@@ -53,58 +43,63 @@ Here is an example using the `YCrCb` color space and HOG parameters of `orientat
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and I honestly never really found ones that did that well. The combination I settled on seemed to show some promise, but it still never seemed like the classifier really knew what a car was.
+I tried various combinations of parameters starting with the ones used in the lessons. The combination I settled on do a good job of extracting enough features from each image without causing a large increase in the amount of time it took to process each image.
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using 15,000+ data points, principle component analysis, and a standard scaler. This happens in the `Model` class.
+I trained a linear SVM using roughly 17,500 data points and a standard scaler. This happens in the `Classifier` class (cell 5 in `vehicle_detection.ipynb`).
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I pretty much just used the standard `findCars()` function that was used during the lessons. I decided on the scale based on experimentation. I went with a scales of 1.0, 1.5, 2.0, and 2.5 because they seemed about as effective as any other scale and did not increase the processing time, which was an issue with lower scales.
+I tested both the sliding window method and the HOG subsampling method (cells 21-30 in `test_pipeline.ipynb`) and settled on HOG subsampling using the `findCars()` function that was used during the lessons (cell 6 in `vehicle_detection.ipynb`). I decided on the scale based on experimentation. I went with a scales of 1.0, 2.0, and 3.0  because they to classify both cars close to the camera and ones on the horizon, and did not increase the processing time, which was an issue with lower scales.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Honestly, my pipeline doesn't work. I have been playing with training parameters for weeks now, and while it seems to mostly identify cars, it doesn't do that great of a job and there are too many false positives to filter them out. This is especially frustrating because of how well it performs on the validation data. Ultimately I searched on one scale using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided slightly better results than any other combination.  Here is an example image:
+The main technique I used to optimize my filter was using the classifier's `decision_function()` (cell 4 and 6 in `vehicle_detection.ipynb`) to filter out predictions that are below a certain confidence threshold. This means the pipeline identifies a car where it is confident there is one.
 
-![alt text](output_images/sliding_window.png)
+![alt text](output_images/pipeline1.png)
+![alt text](output_images/pipeline2.png)
+![alt text](output_images/pipeline3.png)
+![alt text](output_images/pipeline4.png)
+![alt text](output_images/pipeline5.png)
+![alt text](output_images/pipeline6.png)
 ---
 
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
 
-Here's a [link to my video result](./output_video.mp4)
+Here's a [link to my video result](./output_images/output_video.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-The most effective filter is filtering out false predictions using `decision_function()` and filter out predictions that are below a certain confidence threshold. I also thresholded bounding boxes in the heat map, although there were so many false positives that it made it difficult not filter them out and not also filter out the correct identifications. I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heat map and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heat map.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+From the positive detections I created a heat map and then applied a threshold to that heatmap to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heat map, and assumed each blob corresponded to a vehicle.  I drew bounding boxes to cover the area of each blob detected.  
 
 Here's an example result showing the heat map from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
-![alt text](output_images/image2.png)
-![alt text](output_images/image10.png)
-![alt text](output_images/image20.png)
-![alt text](output_images/image30.png)
-![alt text](output_images/image50.png)
-![alt text](output_images/image60.png)
+![alt text](test_images/test1.jpg)
+![alt text](test_images/test2.jpg)
+![alt text](test_images/test3.jpg)
+![alt text](test_images/test4.jpg)
+![alt text](test_images/test5.jpg)
+![alt text](test_images/test6.jpg)
+![alt text](output_images/heatmap1.png)
 ![alt text](output_images/heatmap2.png)
-![alt text](output_images/heatmap10.png)
-![alt text](output_images/heatmap20.png)
-![alt text](output_images/heatmap30.png)
-![alt text](output_images/heatmap50.png)
-![alt text](output_images/heatmap60.png)
+![alt text](output_images/heatmap3.png)
+![alt text](output_images/heatmap4.png)
+![alt text](output_images/heatmap5.png)
+![alt text](output_images/heatmap6.png)
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text](output_images/labeled_boxes2.png)
-![alt text](output_images/labeled_boxes10.png)
-![alt text](output_images/labeled_boxes20.png)
-![alt text](output_images/labeled_boxes30.png)
-![alt text](output_images/labeled_boxes50.png)
-![alt text](output_images/labeled_boxes60.png)
+![alt text](output_images/pipeline1.png)
+![alt text](output_images/pipeline2.png)
+![alt text](output_images/pipeline3.png)
+![alt text](output_images/pipeline4.png)
+![alt text](output_images/pipeline5.png)
+![alt text](output_images/pipeline6.png)
 
 ---
 
@@ -112,16 +107,6 @@ Here's an example result showing the heat map from a series of frames of video, 
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-##### First submission comments
-I'm so stuck on this project. I've been working on it for weeks and I feel like I'm actually pretty close, but that last little bit is really causing huge issues in the pipeline. I have experimented a lot, as well as read posts on the discussion boards, and found what I think is a good set of parameters. I'm using both the Udacity data set, the Autti dataset, and the CrowdAI dataset to train my classifier, and I used 15,000+ images, which was the most I could do on and AWS EC2 instance without running into memory issues. This gets me to my classifier is 98% accurate or more when run on the validation data.
+I struggled with this project for a month a finally I took a step back and rebuilt it while following along with the Q&A video Ryan did. This, coupled with the fact that I began using Jupyter notebooks to test my code instead of standar Python files, helped me fix mistakes that were causing problems and identify what parts of my pipeline needed to be improved. Once I finally broke everything down into individual components and tested them, I was able to make a lot of progress really quickly
 
-I'm also thresholding both based on the confidence measure of each prediction, and on the heat maps, although thresholding on the heat maps has been difficult because the false positives are about as dense, if not more dense, than the correct identifications, which means that filtering them out also filters out areas that I want to keep.
-
-I am very stuck and could really use some help and feedback. Again, I think I understand what is happening and have played around with it enough to feel like I am close, but for some reason I have reached a point where no matter what I do nothing really improves.
-
-The pipeline is also incredibly slow when processing the video, which is mostly due to `pixels_per_cell` being so low, but I know from reading discussions on the forum that having `pixels_per_cell = 8` is not uncommon, so I'm wondering if there's anything that could be done to speed it up. It seems like everything is necessary so I'm struggling to identify what could be made faster. It took about an hour and a half just to process 10 seconds of video, which is why I did not process the full video (upwards of 8 hours).
-
-##### Second submission comments
-This is my second submission, and I'm still having issues. The advice from the reviewer on the first one was to implement multiple sliding window scales, which helped a little bit, but still didn't have a huge effect because the classifier just really isn't identifying the cars at all, despite 98% accuracy.
-
-I would also really like some advice on speeding up the pipeline, because it takes about 20 minutes to process 3 seconds of video, so it will take all day to process the entire video.
+However, my pipeline still has occasional false positives, most likely because the road changes and sharper edges cause it to think there is a car there. I performed hard negative mining on the video in spots where there were a lot more false positives and this seemed to improve the results greatly. Taking the time to go through and correctly extract good negative images from the video, as well as training on more data, would probably go a long way in fixing these problems.
