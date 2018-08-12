@@ -13,6 +13,8 @@ To extract these sections, HOG subsampling was first performed on the entire fra
 
 After that, the frame is converted to a heatmap based on the predictions made, and boxes are drawn around areas that are considered "hot". A threshold is applied at this step as well to further prevent false positives.
 
+Check out [my writeup](writeup.md) to learn more about my process and how it works.
+
 ### Dependencies
 
 This project requires:
