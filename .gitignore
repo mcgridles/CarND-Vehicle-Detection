@@ -6,10 +6,8 @@ __pycache__/
 .DS_Store
 
 # Project files
-examples/
 annotations/
 .ipynb_checkpoints/
 test_video.mp4
-project_video.mp4
 classifier.pkl
 .idea/
